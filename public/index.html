@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>AI 디자인 사전 검수 에이전트</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0b0d;--bg2:#111115;--bg3:#17171c;--bg4:#1e1e25;
+  --border:#2a2a32;--border2:#38383f;
+  --text:#f0f0f2;--text2:#9898a6;--text3:#5a5a68;
+  --green:#12c48b;--green-bg:rgba(18,196,139,.1);--green-border:rgba(18,196,139,.2);
+  --red:#ff5c5c;--red-bg:rgba(255,92,92,.1);--red-border:rgba(255,92,92,.2);
+  --yellow:#ffb344;--yellow-bg:rgba(255,179,68,.1);--yellow-border:rgba(255,179,68,.2);
+  --blue:#5b9cf6;--blue-bg:rgba(91,156,246,.1);--blue-border:rgba(91,156,246,.2);
+  --r:12px;--r2:8px;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+header{height:54px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:10px;background:var(--bg2);position:sticky;top:0;z-index:100}
+.logo{width:26px;height:26px;border-radius:7px;background:var(--green);display:grid;place-items:center;font-size:13px;flex-shrink:0}
+header strong{font-size:14px;font-weight:600}
+.badge{font-size:10px;padding:3px 8px;border:1px solid var(--green-border);color:var(--green);border-radius:99px;letter-spacing:.04em}
+main{display:grid;grid-template-columns:400px 1fr;gap:16px;padding:20px;max-width:1440px;margin:0 auto}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+.panel{background:var(--bg3);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.panel-head{padding:14px 18px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600;color:var(--text2);letter-spacing:.04em}
+.panel-body{padding:16px;display:flex;flex-direction:column;gap:12px}
+label{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;display:block;margin-bottom:5px}
+input,select,textarea{width:100%;background:var(--bg4);border:1px solid var(--border);border-radius:var(--r2);color:var(--text);padding:10px 12px;font-size:13px;font-family:inherit;outline:none;transition:border .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--green)}
+input::placeholder,textarea::placeholder{color:var(--text3)}
+textarea{min-height:72px;resize:vertical}
+select option{background:var(--bg4)}
+.upload{border:1.5px dashed var(--border2);border-radius:var(--r);min-height:120px;display:grid;place-items:center;text-align:center;color:var(--text3);cursor:pointer;background:var(--bg4);transition:all .15s;overflow:hidden}
+.upload:hover{border-color:var(--green);background:var(--green-bg)}
+.upload img{max-width:100%;max-height:160px;border-radius:var(--r2);display:block}
+.upload-text{font-size:13px;line-height:1.6}
+.upload-sub{font-size:11px;margin-top:4px}
+.director-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.director-card{border:1.5px solid var(--border);border-radius:var(--r);padding:12px 10px;cursor:pointer;text-align:center;transition:all .15s;background:var(--bg4)}
+.director-card:hover{border-color:var(--border2)}
+.director-card.selected{border-color:var(--green);background:var(--green-bg)}
+.director-card.selected .dir-letter{color:var(--green)}
+.dir-letter{font-size:20px;font-weight:800;margin-bottom:4px;color:var(--text2)}
+.dir-name{font-size:11px;font-weight:600}
+.dir-desc{font-size:10px;color:var(--text3);margin-top:3px;line-height:1.4}
+.spec{border:1px solid var(--border);border-radius:var(--r2);overflow:hidden}
+.spec-row{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-bottom:1px solid var(--border);font-size:12px}
+.spec-row:last-child{border-bottom:none}
+.spec-key{color:var(--text2)}
+.ok{color:var(--green)}.bad{color:var(--red)}.warn{color:var(--yellow)}
+.run-btn{width:100%;padding:13px;background:var(--green);border:none;border-radius:var(--r);color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px}
+.run-btn:hover:not(:disabled){background:#0faa78;transform:translateY(-1px)}
+.run-btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.result-area{min-height:600px;display:flex;flex-direction:column}
+.empty-state,.loading-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem;text-align:center;color:var(--text3)}
+.empty-icon{font-size:36px;margin-bottom:12px;opacity:.3}
+.empty-title{font-size:15px;font-weight:500;color:var(--text2);margin-bottom:6px}
+.empty-desc{font-size:13px;line-height:1.7}
+.spinner{width:36px;height:36px;border:2.5px solid var(--border2);border-top-color:var(--green);border-radius:50%;animation:spin .9s linear infinite;margin-bottom:14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-msg{font-size:14px;color:var(--text2);margin-bottom:4px}
+.loading-sub{font-size:12px;color:var(--text3)}
+.result-content{padding:16px;display:flex;flex-direction:column;gap:10px}
+.verdict-banner{border-radius:var(--r);padding:16px 18px;display:flex;align-items:center;gap:14px;border:1px solid transparent}
+.verdict-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.verdict-info{flex:1}
+.verdict-label{font-size:11px;opacity:.7;margin-bottom:3px}
+.verdict-value{font-size:18px;font-weight:800}
+.verdict-dir{font-size:11px;opacity:.6;margin-top:2px}
+.verdict-danger{background:var(--red-bg);border-color:var(--red-border);color:var(--red)}
+.verdict-danger .verdict-dot{background:var(--red)}
+.verdict-warn{background:var(--yellow-bg);border-color:var(--yellow-border);color:var(--yellow)}
+.verdict-warn .verdict-dot{background:var(--yellow)}
+.verdict-caution{background:var(--blue-bg);border-color:var(--blue-border);color:var(--blue)}
+.verdict-caution .verdict-dot{background:var(--blue)}
+.verdict-ok{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
+.verdict-ok .verdict-dot{background:var(--green)}
+.summary-list{display:flex;flex-direction:column;gap:6px}
+.summary-item{background:var(--bg4);border:1px solid var(--border);border-radius:var(--r2);padding:10px 14px;font-size:13px;color:var(--text2);display:flex;gap:8px;align-items:flex-start}
+.summary-bullet{color:var(--yellow);flex-shrink:0;font-size:11px;margin-top:2px}
+.section-card{background:var(--bg4);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.section-head{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;user-select:none;transition:background .12s}
+.section-head:hover{background:rgba(255,255,255,.02)}
+.section-head-left{display:flex;align-items:center;gap:10px}
+.section-icon{font-size:15px}
+.section-title{font-size:13px;font-weight:600}
+.section-cause{font-size:10px;color:var(--text3);margin-top:2px}
+.section-verdict{font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;flex-shrink:0}
+.sv-danger{background:var(--red-bg);color:var(--red)}
+.sv-warn{background:var(--yellow-bg);color:var(--yellow)}
+.sv-caution{background:var(--blue-bg);color:var(--blue)}
+.sv-ok{background:var(--green-bg);color:var(--green)}
+.section-toggle{color:var(--text3);font-size:12px;margin-left:8px;transition:transform .2s;display:inline-block}
+.section-toggle.open{transform:rotate(180deg)}
+.section-body{border-top:1px solid var(--border);padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.section-body.collapsed{display:none}
+.detail-row{display:flex;flex-direction:column;gap:3px}
+.detail-label{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase}
+.detail-text{font-size:13px;color:var(--text2);line-height:1.6}
+.suggestion-text{font-size:13px;color:var(--text);background:rgba(18,196,139,.06);border-left:2px solid var(--green);padding:8px 12px;border-radius:0 var(--r2) var(--r2) 0;line-height:1.6}
+.priorities{background:var(--bg4);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px}
+.block-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.priority-item{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--text2)}
+.priority-item:last-child{border-bottom:none}
+.priority-num{font-size:10px;font-weight:800;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.pn-1{background:var(--red-bg);color:var(--red)}
+.pn-2{background:var(--yellow-bg);color:var(--yellow)}
+.pn-3{background:var(--blue-bg);color:var(--blue)}
+.final-comment{background:var(--bg4);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px}
+.final-text{font-size:13px;color:var(--text2);line-height:1.7}
+.result-actions{display:flex;gap:8px}
+.action-btn{flex:1;padding:9px;font-size:12px;font-weight:600;border-radius:var(--r2);cursor:pointer;border:1px solid var(--border2);background:var(--bg4);color:var(--text2);transition:all .12s}
+.action-btn:hover{background:var(--bg3);color:var(--text)}
+.btn-spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">✦</div>
+  <strong>AI 디자인 사전 검수 에이전트</strong>
+  <span class="badge">v4</span>
+</header>
+<main>
+  <section class="panel">
+    <div class="panel-head">검수 설정</div>
+    <div class="panel-body">
+      <div>
+        <label>디렉터 타입</label>
+        <div class="director-grid">
+          <div class="director-card selected" data-type="A" onclick="selectDirector('A')">
+            <div class="dir-letter">A</div>
+            <div class="dir-name">완성도</div>
+            <div class="dir-desc">마감감·디테일 최우선</div>
+          </div>
+          <div class="director-card" data-type="B" onclick="selectDirector('B')">
+            <div class="dir-letter">B</div>
+            <div class="dir-name">브랜드</div>
+            <div class="dir-desc">톤·무드·아이덴티티</div>
+          </div>
+          <div class="director-card" data-type="C" onclick="selectDirector('C')">
+            <div class="dir-letter">C</div>
+            <div class="dir-name">구조</div>
+            <div class="dir-desc">가독성·정보위계</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <label>시안 이미지</label>
+        <div class="upload" id="uploadBox">
+          <div id="uploadPlaceholder"><div class="upload-text">클릭하거나 드래그해서 업로드</div><div class="upload-sub">PNG / JPG / WebP</div></div>
+          <img id="preview" style="display:none" alt="미리보기"/>
+        </div>
+        <input id="file" type="file" accept="image/png,image/jpeg,image/webp" style="display:none"/>
+      </div>
+      <div>
+        <label>배너 종류</label>
+        <select id="reviewType"><option value="">선택하세요</option></select>
+      </div>
+      <div><label>브랜드명</label><input id="brandName" placeholder="예: Galaxy S26, Volvo, KFC"/></div>
+      <div><label>화면 목적</label><input id="purpose" placeholder="예: 혜택 안내, 이벤트 응모 유도"/></div>
+      <div><label>주요 혜택 / 메시지</label><input id="benefit" placeholder="핵심 혜택 또는 메시지"/></div>
+      <div><label>CTA</label><input id="cta" placeholder="예: 혜택 보러가기, 응모하기"/></div>
+      <div><label>디자이너 메모 <span style="text-transform:none;font-weight:400">(선택)</span></label><textarea id="memo" placeholder="의도한 부분, 우려되는 부분, 참고사항"></textarea></div>
+      <div class="spec" id="specBox"><div class="spec-row"><span class="spec-key">상태</span><span class="warn">이미지와 유형을 선택하세요</span></div></div>
+      <button class="run-btn" id="runBtn" disabled onclick="runReview()">✦ 검수 시작</button>
+    </div>
+  </section>
+
+  <section class="panel result-area">
+    <div class="panel-head">검수 결과</div>
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">✦</div>
+      <div class="empty-title">검수 대기 중</div>
+      <div class="empty-desc">디렉터 타입을 선택하고<br>시안을 업로드하면<br>검수가 시작됩니다</div>
+    </div>
+    <div class="loading-state" id="loadingState" style="display:none">
+      <div class="spinner"></div>
+      <div class="loading-msg" id="loadingMsg">이미지 분석 중...</div>
+      <div class="loading-sub" id="loadingSub">잠시만 기다려주세요</div>
+    </div>
+    <div id="resultContent" style="display:none"></div>
+  </section>
+</main>
+
+<script>
+let rules={},selectedFile=null,imageInfo=null,selectedDirector='A',lastResultText='';
+const $=id=>document.getElementById(id);
+const LOADING=[['이미지 분석 중...','시안을 살펴보고 있어요'],['규격 가이드 대조 중...','사이즈와 안전영역을 확인하고 있어요'],['디렉터 기준 적용 중...','선택하신 디렉터 타입으로 검수 중이에요'],['리포트 생성 중...','거의 다 됐어요']];
+const ICONS={tv:'📺',hierarchy:'📊',brand:'🎨',finish:'✨'};
+const DIR_NAMES={A:'완성도 디렉터',B:'브랜드 디렉터',C:'구조 디렉터'};
+
+async function init(){
+  try{const r=await fetch('/rules/design-guide-rules.json');rules=await r.json();Object.keys(rules.items||{}).forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k;$('reviewType').appendChild(o)});}catch(e){console.warn(e);}
+}
+
+function selectDirector(t){
+  selectedDirector=t;
+  document.querySelectorAll('.director-card').forEach(c=>c.classList.toggle('selected',c.dataset.type===t));
+}
+
+function fileToBase64(f){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(String(fr.result).split(',')[1]);fr.onerror=rej;fr.readAsDataURL(f);});}
+function loadImageInfo(f){return new Promise((res,rej)=>{const img=new Image();img.onload=()=>res({width:img.naturalWidth,height:img.naturalHeight});img.onerror=rej;img.src=URL.createObjectURL(f);});}
+
+function checkSpec(){
+  const type=$('reviewType').value,spec=rules.items?.[type];
+  if(!selectedFile||!type||!spec){$('runBtn').disabled=true;return null;}
+  const kb=Math.round(selectedFile.size/1024);
+  const sizeOk=(spec.width===null||imageInfo.width===spec.width)&&imageInfo.height===spec.height;
+  const formatOk=spec.formats.includes(selectedFile.type);
+  const maxOk=kb<=spec.maxKB;
+  const st=spec.width===null?`H ${spec.height}`:`${spec.width}×${spec.height}`;
+  $('specBox').innerHTML=`<div class="spec-row"><span class="spec-key">사이즈</span><span class="${sizeOk?'ok':'bad'}">${imageInfo.width}×${imageInfo.height} / 기준 ${st}</span></div><div class="spec-row"><span class="spec-key">파일 형식</span><span class="${formatOk?'ok':'bad'}">${selectedFile.type.replace('image/','').toUpperCase()} / 기준 ${spec.formats.map(f=>f.replace('image/','')).join(', ').toUpperCase()}</span></div><div class="spec-row"><span class="spec-key">용량</span><span class="${maxOk?'ok':'bad'}">${kb}KB / 기준 ${spec.maxKB}KB 이하</span></div><div class="spec-row"><span class="spec-key">안전영역</span><span class="warn">${spec.safeArea}</span></div>`;
+  $('runBtn').disabled=false;
+  return{type,actual:{width:imageInfo.width,height:imageInfo.height,mime:selectedFile.type,kb},expected:spec,result:{sizeOk,formatOk,maxOk}};
+}
+
+async function handleFile(f){
+  selectedFile=f;imageInfo=await loadImageInfo(f);
+  $('preview').src=URL.createObjectURL(f);$('preview').style.display='block';$('uploadPlaceholder').style.display='none';
+  checkSpec();
+}
+
+$('uploadBox').onclick=()=>$('file').click();
+$('uploadBox').addEventListener('dragover',e=>{e.preventDefault();$('uploadBox').style.borderColor='var(--green)';});
+$('uploadBox').addEventListener('dragleave',()=>{$('uploadBox').style.borderColor='';});
+$('uploadBox').addEventListener('drop',e=>{e.preventDefault();$('uploadBox').style.borderColor='';const f=e.dataTransfer.files[0];if(f)handleFile(f);});
+$('file').onchange=e=>{if(e.target.files[0])handleFile(e.target.files[0]);};
+$('reviewType').onchange=checkSpec;
+
+function vc(v){if(!v)return'verdict-caution';if(v.includes('치명'))return'verdict-danger';if(v.includes('수정'))return'verdict-warn';if(v.includes('검토'))return'verdict-caution';if(v.includes('양호'))return'verdict-ok';return'verdict-caution';}
+function svc(v){if(!v)return'sv-caution';if(v.includes('치명'))return'sv-danger';if(v.includes('수정'))return'sv-warn';if(v.includes('검토'))return'sv-caution';if(v.includes('양호'))return'sv-ok';return'sv-caution';}
+
+function toggleSection(id){
+  const b=document.getElementById('body-'+id),t=document.getElementById('toggle-'+id);
+  const open=!b.classList.contains('collapsed');
+  b.classList.toggle('collapsed',open);t.classList.toggle('open',!open);
+}
+
+function renderResult(p,dt){
+  const vcls=vc(p.verdict);
+  const summary=(p.summary||[]).map(s=>`<div class="summary-item"><span class="summary-bullet">▸</span><span>${s}</span></div>`).join('');
+  const sections=(p.sections||[]).map(s=>`
+    <div class="section-card">
+      <div class="section-head" onclick="toggleSection('${s.id}')">
+        <div class="section-head-left">
+          <span class="section-icon">${ICONS[s.id]||'•'}</span>
+          <div><div class="section-title">${s.title}</div>${s.cause?`<div class="section-cause">${s.cause}</div>`:''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span class="section-verdict ${svc(s.verdict)}">${s.verdict}</span>
+          <span class="section-toggle open" id="toggle-${s.id}">▾</span>
+        </div>
+      </div>
+      <div class="section-body" id="body-${s.id}">
+        ${s.problem?`<div class="detail-row"><div class="detail-label">문제</div><div class="detail-text">${s.problem}</div></div>`:''}
+        ${s.reason?`<div class="detail-row"><div class="detail-label">이유</div><div class="detail-text">${s.reason}</div></div>`:''}
+        ${s.suggestion?`<div class="detail-row"><div class="detail-label">제안</div><div class="suggestion-text">${s.suggestion}</div></div>`:''}
+      </div>
+    </div>`).join('');
+  const priorities=(p.priorities||[]).map((item,i)=>`<div class="priority-item"><span class="priority-num pn-${i+1}">${i+1}</span><span>${item}</span></div>`).join('');
+  return `<div class="result-content">
+    <div class="verdict-banner ${vcls}">
+      <div class="verdict-dot"></div>
+      <div class="verdict-info">
+        <div class="verdict-label">종합 판정</div>
+        <div class="verdict-value">${p.verdict||'—'}</div>
+        <div class="verdict-dir">${DIR_NAMES[dt]||''} 기준</div>
+      </div>
+    </div>
+    ${summary?`<div class="summary-list">${summary}</div>`:''}
+    ${sections}
+    ${priorities?`<div class="priorities"><div class="block-title">우선 수정 항목</div>${priorities}</div>`:''}
+    ${p.finalComment?`<div class="final-comment"><div class="block-title">디렉터 전달 전 코멘트</div><div class="final-text">${p.finalComment}</div></div>`:''}
+    <div class="result-actions">
+      <button class="action-btn" onclick="copyResult()">📋 결과 복사</button>
+      <button class="action-btn" onclick="resetResult()">↺ 새 검수</button>
+    </div>
+  </div>`;
+}
+
+async function runReview(){
+  const specCheck=checkSpec();if(!specCheck)return;
+  $('emptyState').style.display='none';$('resultContent').style.display='none';$('loadingState').style.display='flex';
+  $('runBtn').disabled=true;$('runBtn').innerHTML='<span class="btn-spinner"></span> 검수 중...';
+  let mi=0;$('loadingMsg').textContent=LOADING[0][0];$('loadingSub').textContent=LOADING[0][1];
+  const timer=setInterval(()=>{mi=(mi+1)%LOADING.length;$('loadingMsg').textContent=LOADING[mi][0];$('loadingSub').textContent=LOADING[mi][1];},2500);
+  try{
+    const imageBase64=await fileToBase64(selectedFile);
+    const payload={imageBase64,mimeType:selectedFile.type,reviewType:$('reviewType').value,brandName:$('brandName').value,purpose:$('purpose').value,benefit:$('benefit').value,cta:$('cta').value,memo:$('memo').value,specCheck,directorType:selectedDirector};
+    const res=await fetch('/api/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const data=await res.json();
+    clearInterval(timer);
+    if(!res.ok)throw new Error(data.error||'API 오류');
+    lastResultText=data.text||'';
+    $('resultContent').innerHTML=data.parsed?renderResult(data.parsed,selectedDirector):`<div class="result-content"><pre style="white-space:pre-wrap;font-size:13px;line-height:1.7;color:var(--text2)">${lastResultText}</pre></div>`;
+    $('loadingState').style.display='none';$('resultContent').style.display='block';
+  }catch(e){
+    clearInterval(timer);$('loadingState').style.display='none';$('emptyState').style.display='flex';
+    $('emptyState').innerHTML=`<div class="empty-icon">⚠️</div><div class="empty-title">오류 발생</div><div class="empty-desc" style="color:var(--red)">${e.message}</div>`;
+  }finally{
+    $('runBtn').disabled=false;$('runBtn').innerHTML='✦ 검수 시작';
+  }
+}
+
+function copyResult(){
+  navigator.clipboard.writeText(lastResultText).then(()=>{const b=event.target;b.textContent='✓ 복사됨';setTimeout(()=>b.textContent='📋 결과 복사',2000);});
+}
+function resetResult(){
+  $('resultContent').style.display='none';$('emptyState').style.display='flex';
+  $('emptyState').innerHTML=`<div class="empty-icon">✦</div><div class="empty-title">검수 대기 중</div><div class="empty-desc">디렉터 타입을 선택하고<br>시안을 업로드하면<br>검수가 시작됩니다</div>`;
+}
+init();
+</script>
+</body>
+</html>
