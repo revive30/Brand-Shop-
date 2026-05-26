@@ -453,7 +453,22 @@ async function runReview(){
     clearInterval(timer);
     if(!res.ok)throw new Error(data.error||'API 오류');
     lastResultText=data.text||'';
-    parsedResult=data.parsed;
+
+    // 클라이언트에서도 직접 파싱 시도
+    if(data.parsed && data.parsed.verdict){
+      parsedResult=data.parsed;
+    } else {
+      // 서버 파싱 실패시 클라이언트에서 재시도
+      const raw=lastResultText;
+      const attempts=[
+        ()=>JSON.parse(raw),
+        ()=>JSON.parse(raw.replace(/^```json\s*/,'').replace(/\s*```$/,'')),
+        ()=>{const m=raw.match(/\{[\s\S]*\}/);return m?JSON.parse(m[0]):null;},
+      ];
+      for(const fn of attempts){
+        try{const r=fn();if(r&&r.verdict){parsedResult=r;break;}}catch{}
+      }
+    }
 
     $('canvasLoading').style.display='none';
     $('mainImg').style.display='block';
