@@ -53,7 +53,7 @@ severity must be: critical, warning, or info. verdict must be: 치명 리스크,
               { type: 'text', text: prompt }
             ]
           },
-          { role: 'assistant', content: '{' }
+          { role: 'assistant', content: '{"verdict":' }
         ]
       })
     });
@@ -63,7 +63,7 @@ severity must be: critical, warning, or info. verdict must be: 치명 리스크,
 
     const rawText = data?.content?.map(c => c.text || '').join('').trim();
     // assistant prefill로 '{'를 넣었으므로 앞에 '{' 추가
-    const fullText = '{' + rawText;
+    const fullText = '{"verdict":' + rawText;
 
     let parsed = null;
     const attempts = [
