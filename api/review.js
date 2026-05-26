@@ -44,7 +44,7 @@ severity must be: critical, warning, or info. verdict must be: 치명 리스크,
       body: JSON.stringify({
         model,
         max_tokens: 2500,
-        system: 'You are a JSON API. Respond with ONLY a valid JSON object. No markdown code fences, no explanation text, no preamble. Start your response with { and end with }.',
+        system: 'You are a JSON API. Respond with ONLY a valid JSON object. No markdown code fences, no explanation text, no preamble.',
         messages: [
           {
             role: 'user',
@@ -52,8 +52,7 @@ severity must be: critical, warning, or info. verdict must be: 치명 리스크,
               { type: 'image', source: { type: 'base64', media_type: mimeType, data: imageBase64 } },
               { type: 'text', text: prompt }
             ]
-          },
-          { role: 'assistant', content: '{"verdict":' }
+          }
         ]
       })
     });
@@ -62,20 +61,18 @@ severity must be: critical, warning, or info. verdict must be: 치명 리스크,
     if (!response.ok) return res.status(response.status).json({ error: data?.error?.message || 'API 오류' });
 
     const rawText = data?.content?.map(c => c.text || '').join('').trim();
-    // assistant prefill로 '{'를 넣었으므로 앞에 '{' 추가
-    const fullText = '{"verdict":' + rawText;
 
     let parsed = null;
     const attempts = [
-      () => JSON.parse(fullText),
       () => JSON.parse(rawText),
-      () => { const m = fullText.match(/\{[\s\S]*\}/); return m ? JSON.parse(m[0]) : null; },
+      () => JSON.parse(rawText.replace(/^```json\s*/,'').replace(/\s*```$/,'')),
+      () => { const m = rawText.match(/\{[\s\S]*\}/); return m ? JSON.parse(m[0]) : null; },
     ];
     for (const fn of attempts) {
       try { const r = fn(); if (r && r.verdict) { parsed = r; break; } } catch {}
     }
 
-    return res.status(200).json({ model_used: model, text: fullText, parsed });
+    return res.status(200).json({ model_used: model, text: rawText, parsed });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
