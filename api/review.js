@@ -9,21 +9,9 @@ export default async function handler(req, res) {
     if (!imageBase64 || !mimeType) return res.status(400).json({ error: '이미지가 없습니다.' });
 
     const directorProfiles = {
-      A: {
-        name: '완성도 디렉터',
-        desc: '마감감·디테일 최우선. 픽셀 단위 정렬, 합성 품질, 폰트 일관성에 민감하다.',
-        focus: '완성도와 마감감을 가장 엄격하게 검수한다. 정렬이 1px 틀려도 리턴한다. 브랜드 톤보다 "완성된 느낌"을 우선시한다.',
-      },
-      B: {
-        name: '브랜드 디렉터',
-        desc: '브랜드 톤·무드 최우선. 색감, 분위기, 브랜드 아이덴티티에 가장 예민하다.',
-        focus: '브랜드 톤과 무드를 가장 엄격하게 검수한다. 완성도보다 "브랜드답게 느껴지는가"를 우선시한다. 프리미엄 브랜드가 싸 보이면 무조건 리턴한다.',
-      },
-      C: {
-        name: '구조 디렉터',
-        desc: 'TV 시청 환경·정보 위계 최우선. 멀리서 읽히는지, 핵심이 한눈에 들어오는지를 가장 중요하게 본다.',
-        focus: 'TV 시청 환경 적합성과 정보 위계를 가장 엄격하게 검수한다. 디테일보다 "한눈에 읽히는가"를 우선시한다. 텍스트가 많거나 CTA가 약하면 무조건 리턴한다.',
-      },
+      A: { name: '완성도 디렉터', desc: '마감감·디테일 최우선. 픽셀 단위 정렬, 합성 품질, 폰트 일관성에 민감하다.', focus: '완성도와 마감감을 가장 엄격하게 검수한다. 정렬이 1px 틀려도 리턴한다.' },
+      B: { name: '브랜드 디렉터', desc: '브랜드 톤·무드 최우선. 색감, 분위기, 브랜드 아이덴티티에 가장 예민하다.', focus: '브랜드 톤과 무드를 가장 엄격하게 검수한다. 프리미엄 브랜드가 싸 보이면 무조건 리턴한다.' },
+      C: { name: '구조 디렉터', desc: 'TV 시청 환경·정보 위계 최우선. 멀리서 읽히는지, 핵심이 한눈에 들어오는지를 가장 중요하게 본다.', focus: 'TV 시청 환경 적합성과 정보 위계를 가장 엄격하게 검수한다. 텍스트가 많거나 CTA가 약하면 무조건 리턴한다.' },
     };
 
     const dp = directorProfiles[directorType] || directorProfiles.A;
@@ -40,15 +28,38 @@ export default async function handler(req, res) {
 - 주요 혜택: ${benefit || '미입력'}
 - CTA: ${cta || '미입력'}
 - 메모: ${memo || '없음'}
-
-규격 체크 결과: ${JSON.stringify(specCheck || {})}
+- 규격 체크: ${JSON.stringify(specCheck || {})}
 
 반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트는 절대 포함하지 마세요.
+
+markers 배열은 이미지에서 문제가 있는 위치를 표시합니다.
+x, y는 이미지 전체 크기 대비 백분율(0~100)로 표시합니다.
+예: 이미지 좌측 상단 20% 지점이면 x: 20, y: 15
+label은 마커 번호와 짧은 제목입니다.
+severity는 "critical"(빨강), "warning"(노랑), "info"(파랑) 중 하나입니다.
 
 {
   "verdict": "치명 리스크 | 수정 권장 | 검토 필요 | 양호",
   "directorType": "${directorType || 'A'}",
   "summary": ["핵심 리스크 1문장", "핵심 리스크 1문장"],
+  "markers": [
+    {
+      "id": 1,
+      "x": 25,
+      "y": 15,
+      "severity": "critical",
+      "label": "텍스트 가독성",
+      "comment": "해당 영역 문제를 2~3문장으로 설명"
+    },
+    {
+      "id": 2,
+      "x": 70,
+      "y": 50,
+      "severity": "warning",
+      "label": "이미지 합성",
+      "comment": "해당 영역 문제를 2~3문장으로 설명"
+    }
+  ],
   "sections": [
     {
       "id": "tv",
@@ -57,7 +68,8 @@ export default async function handler(req, res) {
       "cause": "기획/UX 구조 리스크 | 디자인 표현 리스크 | 복합 리스크",
       "problem": "문제 1~2문장",
       "reason": "이유 1~2문장",
-      "suggestion": "제안 1~2문장"
+      "suggestion": "제안 1~2문장",
+      "markerIds": [1, 2]
     },
     {
       "id": "hierarchy",
@@ -66,7 +78,8 @@ export default async function handler(req, res) {
       "cause": "기획/UX 구조 리스크 | 디자인 표현 리스크 | 복합 리스크",
       "problem": "문제 1~2문장",
       "reason": "이유 1~2문장",
-      "suggestion": "제안 1~2문장"
+      "suggestion": "제안 1~2문장",
+      "markerIds": [1]
     },
     {
       "id": "brand",
@@ -75,7 +88,8 @@ export default async function handler(req, res) {
       "cause": null,
       "problem": "문제 1~2문장",
       "reason": "이유 1~2문장",
-      "suggestion": "제안 1~2문장"
+      "suggestion": "제안 1~2문장",
+      "markerIds": []
     },
     {
       "id": "finish",
@@ -84,7 +98,8 @@ export default async function handler(req, res) {
       "cause": null,
       "problem": "문제 1~2문장",
       "reason": "이유 1~2문장",
-      "suggestion": "제안 1~2문장"
+      "suggestion": "제안 1~2문장",
+      "markerIds": [2]
     }
   ],
   "priorities": ["1순위 수정 항목", "2순위 수정 항목", "3순위 수정 항목"],
@@ -95,7 +110,7 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
-        model, max_tokens: 2000,
+        model, max_tokens: 2500,
         messages: [{ role: 'user', content: [
           { type: 'image', source: { type: 'base64', media_type: mimeType, data: imageBase64 } },
           { type: 'text', text: prompt }
